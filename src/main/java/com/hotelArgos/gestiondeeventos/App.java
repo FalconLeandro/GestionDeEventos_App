@@ -10,31 +10,65 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
 public class App {
-
+    private static UsuarioController usuarioController;
+    private static EventoController eventoController;
     public static void main(String[] args) {
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/bd_gestiondeeventosapp", "root", "mysql1034")) {
-            Scanner scanner = new Scanner(System.in);
-            menuPrincipal(connection, scanner);
+        try {
+            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/bd_gestiondeeventosapp", "root", "mysql1034");
+            usuarioController = new UsuarioController(new UsuarioDAO(connection));
+            eventoController = new EventoController(connection);
+
+            EventoDAO eventoDAO = new EventoDAO(connection);
+            EventoCalendarioEstado scheduler = new EventoCalendarioEstado(eventoDAO);
+            scheduler.start();
+
+            Usuario usuario = login();
+            if (usuario != null) {
+                System.out.println("Login successful!");
+                Scanner scanner = new Scanner(System.in);
+                menuPrincipal(connection, scanner, usuario);
+            } else {
+                System.out.println("Login failed. Exiting application.");
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public static void menuPrincipal(Connection connection, Scanner scanner) throws SQLException {
+    private static Usuario login() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter email: ");
+        String email = scanner.nextLine();
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine();
+
+        Usuario usuario = usuarioController.obtenerUsuarioPorEmail(email);
+        if (usuario != null && usuario.getPassword().equals(password)) {
+            return usuario;
+        }
+        return null;
+    }
+
+    public static void menuPrincipal(Connection connection, Scanner scanner, Usuario usuario) throws SQLException {
         while (true) {
             System.out.println("=== Menú Principal ===");
             System.out.println("1. Gestión de Eventos");
-            System.out.println("2. Gestión de Empresas");
-            System.out.println("3. Gestión de Salones");
-            System.out.println("4. Gestión de Formatos de Salón");
-            System.out.println("5. Gestión de Servicios Adicionales");
-            System.out.println("6. Gestión de Catering");
-            System.out.println("7. Gestión de Opciones de Catering");
+            System.out.println("2. Imprimir Evento");
+            if ("ADMIN".equals(usuario.getRol())) {
+                System.out.println("3. Gestión de Empresas");
+                System.out.println("4. Gestión de Salones");
+                System.out.println("5. Gestión de Formatos de Salón");
+                System.out.println("6. Gestión de Servicios Adicionales");
+                System.out.println("7. Gestión de Catering");
+                System.out.println("8. Gestión de Opciones de Catering");
+            }
             System.out.println("0. Salir");
             System.out.print("Seleccione una opción: ");
             int opcion = scanner.nextInt();
@@ -45,26 +79,53 @@ public class App {
                     menuGestionEventos(connection, scanner);
                     break;
                 case 2:
-                    menuGestionEmpresas(connection, scanner);
+                    imprimirEvento(scanner);
                     break;
                 case 3:
-                    menuGestionSalones(connection, scanner);
+                    if ("ADMIN".equals(usuario.getRol())) {
+                        menuGestionEmpresas(connection, scanner);
+                    } else {
+                        System.out.println("Opción no válida.");
+                    }
                     break;
                 case 4:
-                    menuGestionFormatoSalon(connection, scanner);
+                    if ("ADMIN".equals(usuario.getRol())) {
+                        menuGestionSalones(connection, scanner);
+                    } else {
+                        System.out.println("Opción no válida.");
+                    }
                     break;
                 case 5:
-                    menuGestionServicios(connection, scanner);
+                    if ("ADMIN".equals(usuario.getRol())) {
+                        menuGestionFormatoSalon(connection, scanner);
+                    } else {
+                        System.out.println("Opción no válida.");
+                    }
                     break;
                 case 6:
-                    menuGestionCatering(connection, scanner);
+                    if ("ADMIN".equals(usuario.getRol())) {
+                        menuGestionServicios(connection, scanner);
+                    } else {
+                        System.out.println("Opción no válida.");
+                    }
                     break;
                 case 7:
-                    menuGestionOpcionesCatering(connection, scanner);
+                    if ("ADMIN".equals(usuario.getRol())) {
+                        menuGestionCatering(connection, scanner);
+                    } else {
+                        System.out.println("Opción no válida.");
+                    }
+                    break;
+                case 8:
+                    if ("ADMIN".equals(usuario.getRol())) {
+                        menuGestionOpcionesCatering(connection, scanner);
+                    } else {
+                        System.out.println("Opción no válida.");
+                    }
                     break;
                 case 0:
                     System.out.println("Saliendo...");
-                    return;
+                    System.exit(0);
                 default:
                     System.out.println("Opción no válida.");
             }
@@ -79,7 +140,8 @@ public class App {
             System.out.println("1. Crear Evento");
             System.out.println("2. Listar Eventos");
             System.out.println("3. Actualizar Evento");
-            System.out.println("4. Eliminar Evento");
+            System.out.println("4. Cancelar Evento");
+            System.out.println("5. Imprimir Evento");
             System.out.println("0. Volver al Menú Principal");
             System.out.print("Seleccione una opción: ");
             int opcion = scanner.nextInt();
@@ -96,7 +158,10 @@ public class App {
                     actualizarEvento(eventoController, scanner);
                     break;
                 case 4:
-                    eliminarEvento(eventoController, scanner);
+                    cancelarEvento(scanner);
+                    break;
+                case 5:
+                    imprimirEvento(scanner);
                     break;
                 case 0:
                     return;
@@ -110,12 +175,23 @@ public class App {
     public static void crearEvento(EventoController eventoController, Scanner scanner, Connection connection) throws SQLException {
         System.out.println("=== Crear Nuevo Evento ===");
 
+        LocalDate fechaEvento = null;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
         System.out.print("Nombre del Evento: ");
         String nombre = scanner.nextLine();
 
-        System.out.print("Fecha del evento (AAAA-MM-DD): ");
-        LocalDate fecha = LocalDate.parse(scanner.next());
+        while (fechaEvento == null) {
+            System.out.print("Fecha del evento (DD-MM-AAAA): ");
+            String fechaInput = scanner.nextLine();
+            try {
+                fechaEvento = LocalDate.parse(fechaInput, formatter);
+            } catch (DateTimeParseException e) {
+                System.out.println("Formato de fecha incorrecto. Por favor, ingrese la fecha en el formato DD-MM-AAAA.");
+            }
+        }
         scanner.nextLine(); // Consumir el salto de línea
+
 
         System.out.print("Hora de inicio (HH:MM): ");
         LocalTime horaInicio = LocalTime.parse(scanner.next());
@@ -143,7 +219,7 @@ public class App {
         EmpresaDAO empresaDAO = new EmpresaDAO(connection); // Pasa la conexión al DAO
         Empresa empresa = empresaDAO.obtenerPorId(empresaId); // Obtén la empresa desde la base de datos
         if (empresa == null) {
-            System.out.println("Error: No se encontró la empresa con el ID especificado.");
+            System.out.println("Error: No se encontró la empresa con el ID especificado. Vuelva al menú principal en caso que desee registrar una empresa.");
             return; // Maneja el caso en que la empresa no exista
         }
 
@@ -155,7 +231,7 @@ public class App {
         SalonDAO salonDAO = new SalonDAO(connection); // Pasa la conexión al DAO
         Salon salon = salonDAO.obtenerPorId(salonId); // Obtén la empresa desde la base de datos
         if (salon == null) {
-            System.out.println("Error: No se encontró el salon con el ID especificado.");
+            System.out.println("Error: No se encontró el salon con el ID especificado. Vuelva al menú principal en caso que desee registrar una salón.");
             return; // Maneja el caso en que la empresa no exista
         }
 
@@ -167,8 +243,32 @@ public class App {
         FormatoSalonDAO formatoSalonDAO = new FormatoSalonDAO(connection); // Pasa la conexión al DAO
         FormatoSalon formatoSalon = formatoSalonDAO.obtenerPorId(formatoSalonId); // Obtén el formatoSalon desde la base de datos
         if (formatoSalon == null) {
-            System.out.println("Error: No se encontró el formatoSalon con el ID especificado.");
+            System.out.println("Error: No se encontró el formato de salón con el ID especificado. Vuelva al menú principal en caso que desee registrar un formato de salón.");
             return; // Maneja el caso en que el formatoSalon no exista
+        }
+
+        // Mostrar lista de servicios adicionales disponibles
+        ServiciosAdicionalesDAO serviciosAdicionalesDAO = new ServiciosAdicionalesDAO(connection);
+        List<ServiciosAdicionales> serviciosAdicionalesList = serviciosAdicionalesDAO.obtenerTodos();
+        if (serviciosAdicionalesList.isEmpty()) {
+            System.out.println("No hay servicios adicionales disponibles.");
+        }
+
+        System.out.println("=== Lista de servicios adicionales disponibles ===");
+        for (ServiciosAdicionales servicio : serviciosAdicionalesList) {
+            System.out.println("ID: " + servicio.getId() + ", Nombre: " + servicio.getNombre());
+        }
+        // Permitir al usuario seleccionar uno o varios servicios adicionales
+        List<ServiciosAdicionales> serviciosAdicionalesSeleccionados = new ArrayList<>();
+        System.out.print("IDs de los servicios adicionales (separados por comas): ");
+        String[] idsServiciosAdicionales = scanner.nextLine().split(",");
+        for (String id : idsServiciosAdicionales) {
+            ServiciosAdicionales serviciosAdicionales = serviciosAdicionalesDAO.obtenerPorId(Integer.parseInt(id.trim()));
+            if (serviciosAdicionales != null) {
+                serviciosAdicionalesSeleccionados.add(serviciosAdicionales);
+            } else {
+                System.out.println("Servicio Adicional con ID " + id + " no encontrado.");
+            }
         }
 
         // Listar todos los caterings disponibles
@@ -198,6 +298,7 @@ public class App {
         }
 
         // Listar todas las opciones de catering disponibles
+        System.out.println("=== Lista de Opciones de Catering Disponibles ===");
         OpcionesCateringDAO opcionesCateringDAO = new OpcionesCateringDAO(connection);
         List<OpcionesCatering> opcionesCatering = opcionesCateringDAO.obtenerTodos();
         if (opcionesCatering.isEmpty()) {
@@ -205,7 +306,6 @@ public class App {
             return;
         }
 
-        System.out.println("=== Lista de Opciones de Catering Disponibles ===");
         for (OpcionesCatering opcionCatering : opcionesCatering) {
             System.out.println(opcionCatering.getId() + ": " + opcionCatering.getNombre());
         }
@@ -235,10 +335,17 @@ public class App {
         LocalDateTime updatedAt = LocalDateTime.now();
 
         // Crear el nuevo evento con todos los datos recolectados.
-        Evento nuevoEvento = new Evento(nombre, fecha, horaInicio, horaFin, cantidadPersonas, observaciones, estado, empresa, salon, formatoSalon, cateringsSeleccionados, createdAt, updatedAt);
+        Evento nuevoEvento = new Evento(nombre, fechaEvento, horaInicio, horaFin, cantidadPersonas, observaciones, empresa, salon, formatoSalon, serviciosAdicionalesSeleccionados, cateringsSeleccionados, createdAt, updatedAt);
         eventoController.crearEvento(nuevoEvento);
 
         System.out.println("Evento creado exitosamente.");
+
+        System.out.print("¿Desea imprimir el informe del evento en PDF? (S/N): ");
+        String respuesta = scanner.nextLine();
+        if (respuesta.equalsIgnoreCase("S")) {
+            String filePath = "informe_evento_" + nuevoEvento.getId() + ".pdf";
+            eventoController.generarInformePDF(nuevoEvento);
+        }
     }
 
     public static void listarEventos(EventoController eventoController) {
@@ -252,7 +359,7 @@ public class App {
         }
     }
 
-    public static void actualizarEvento(EventoController eventoController, Scanner scanner) {
+    public static void actualizarEvento(EventoController eventoController, Scanner scanner) throws SQLException {
         System.out.print("ID del Evento a actualizar: ");
         int id = scanner.nextInt();
         scanner.nextLine(); // Consumir el salto de línea
@@ -309,9 +416,96 @@ public class App {
             evento.setEstado(estado);
         }
 
+        System.out.print("Nueva empresa (ID) (dejar en blanco para no cambiar): ");
+        String empresaIdStr = scanner.nextLine();
+        if (!empresaIdStr.isEmpty()) {
+            int empresaId = Integer.parseInt(empresaIdStr);
+            Empresa empresa = new EmpresaDAO(eventoController.getConnection()).obtenerPorId(empresaId);
+            evento.setEmpresa(empresa);
+        }
+
+        System.out.print("Nuevo salón (ID) (dejar en blanco para no cambiar): ");
+        String salonIdStr = scanner.nextLine();
+        if (!salonIdStr.isEmpty()) {
+            int salonId = Integer.parseInt(salonIdStr);
+            Salon salon = new SalonDAO(eventoController.getConnection()).obtenerPorId(salonId);
+            evento.setSalon(salon);
+        }
+
+        System.out.print("Nuevo formato de salón (ID) (dejar en blanco para no cambiar): ");
+        String formatoSalonIdStr = scanner.nextLine();
+        if (!formatoSalonIdStr.isEmpty()) {
+            int formatoSalonId = Integer.parseInt(formatoSalonIdStr);
+            FormatoSalon formatoSalon = new FormatoSalonDAO(eventoController.getConnection()).obtenerPorId(formatoSalonId);
+            evento.setFormatoSalon(formatoSalon);
+        }
+
+        // Actualizar servicios adicionales
+        System.out.print("Actualizar servicios adicionales (S/N): ");
+        String actualizarServicios = scanner.nextLine();
+        if (actualizarServicios.equalsIgnoreCase("S")) {
+            List<ServiciosAdicionales> serviciosAdicionales = new ArrayList<>();
+            while (true) {
+                System.out.print("ID del servicio adicional (0 para terminar): ");
+                int servicioId = scanner.nextInt();
+                scanner.nextLine(); // Consumir el salto de línea
+                if (servicioId == 0) break;
+                ServiciosAdicionales servicio = new ServiciosAdicionalesDAO(eventoController.getConnection()).obtenerPorId(servicioId);
+                if (servicio != null) {
+                    serviciosAdicionales.add(servicio);
+                } else {
+                    System.out.println("Servicio adicional no encontrado.");
+                }
+            }
+            evento.setServiciosAdicionales(serviciosAdicionales);
+        }
+
+        // Actualizar caterings y opciones de catering
+        System.out.print("Actualizar caterings (S/N): ");
+        String actualizarCaterings = scanner.nextLine();
+        if (actualizarCaterings.equalsIgnoreCase("S")) {
+            List<Catering> caterings = new ArrayList<>();
+            while (true) {
+                System.out.print("ID del catering (0 para terminar): ");
+                int cateringId = scanner.nextInt();
+                scanner.nextLine(); // Consumir el salto de línea
+                if (cateringId == 0) break;
+                Catering catering = new CateringDAO(eventoController.getConnection()).obtenerPorId(cateringId);
+                if (catering != null) {
+                    List<OpcionesCatering> opcionesCatering = new ArrayList<>();
+                    while (true) {
+                        System.out.print("ID de la opción de catering (0 para terminar): ");
+                        int opcionId = scanner.nextInt();
+                        scanner.nextLine(); // Consumir el salto de línea
+                        if (opcionId == 0) break;
+                        OpcionesCatering opcion = new OpcionesCateringDAO(eventoController.getConnection()).obtenerPorId(opcionId);
+                        if (opcion != null) {
+                            opcionesCatering.add(opcion);
+                        } else {
+                            System.out.println("Opción de catering no encontrada.");
+                        }
+                    }
+                    catering.setOpcionesCatering(opcionesCatering);
+                    caterings.add(catering);
+                } else {
+                    System.out.println("Catering no encontrado.");
+                }
+            }
+            evento.setCaterings(caterings);
+        }
+
         eventoController.actualizarEvento(evento);
         System.out.println("Evento actualizado exitosamente.");
+
+        System.out.print("¿Desea imprimir el informe del evento en PDF? (S/N): ");
+        String respuesta = scanner.nextLine();
+        if (respuesta.equalsIgnoreCase("S")) {
+            String filePath = "informe_evento_" + evento.getId() + ".pdf";
+            eventoController.generarInformePDF(evento);
+        }
     }
+
+
 
     public static void eliminarEvento(EventoController eventoController, Scanner scanner) {
         System.out.print("ID del Evento a eliminar: ");
@@ -320,6 +514,27 @@ public class App {
 
         eventoController.eliminarEvento(id);
         System.out.println("Evento eliminado exitosamente.");
+    }
+
+    public static void cancelarEvento(Scanner scanner) {
+        System.out.print("ID del Evento a cancelar: ");
+        int id = scanner.nextInt();
+        scanner.nextLine(); // Consumir el salto de línea
+        eventoController.cancelarEvento(id);
+        System.out.println("Evento cancelado exitosamente.");
+    }
+    public static void imprimirEvento(Scanner scanner) {
+        System.out.println("=== Imprimir Evento ===");
+        System.out.print("ID del Evento a imprimir: ");
+        int id = scanner.nextInt();
+        scanner.nextLine(); // Consumir el salto de línea
+        Evento evento = eventoController.obtenerEventoPorId(id);
+        if (evento == null) {
+            System.out.println("Evento no encontrado.");
+            return;
+        }
+        eventoController.generarInformePDF(evento);
+        System.out.println("Informe del evento impreso exitosamente.");
     }
 
     // Menú de gestión de empresas
@@ -513,14 +728,24 @@ public class App {
             return;
         }
 
-        System.out.print("Nuevo nombre del Salón: ");
+        System.out.print("Nuevo nombre del Salón (dejar en blanco para no cambiar): ");
         String nombre = scanner.nextLine();
-        salon.setNombre(nombre);
+        if (!nombre.isEmpty()) {
+            salon.setNombre(nombre);
+        }
 
-        System.out.print("Nueva capacidad del Salón: ");
-        int capacidad = scanner.nextInt();
-        scanner.nextLine(); // Consumir el salto de línea
-        salon.setCapacidad(capacidad);
+        System.out.print("Nueva capacidad del Salón (dejar en blanco para no cambiar): ");
+        String capacidadInput = scanner.nextLine();
+        if (!capacidadInput.isEmpty()) {
+            int capacidad = Integer.parseInt(capacidadInput);
+            salon.setCapacidad(capacidad);
+        }
+
+        System.out.print("Nueva descripcion del Salón (dejar en blanco para no cambiar): ");
+        String descripcion = scanner.nextLine();
+        if (!descripcion.isEmpty()) {
+            salon.setDescripcion(descripcion);
+        }
 
         salonController.actualizarSalon(salon);
         System.out.println("Salón actualizado exitosamente.");
@@ -587,8 +812,12 @@ public class App {
     public static void listarFormatosSalon(FormatoSalonController formatosalonController) {
         List<FormatoSalon> formatosSalon = formatosalonController.obtenerTodosLosFormatosSalon();
         System.out.println("=== Lista de Formatos de Salón ===");
-        for (FormatoSalon formatoSalon : formatosSalon) {
-            System.out.println(formatoSalon);
+        if (formatosSalon.isEmpty()) {
+            System.out.println("No hay formatos de salón registrados.");
+        } else {
+            for (FormatoSalon formatoSalon : formatosSalon) {
+                System.out.println(formatoSalon);
+            }
         }
     }
 
@@ -603,9 +832,18 @@ public class App {
             return;
         }
 
-        System.out.print("Nuevo nombre del Formato de Salón: ");
+        System.out.print("Nuevo nombre del Formato de Salón (dejar en blanco para no cambiar): ");
         String nombre = scanner.nextLine();
-        formatoSalon.setNombre(nombre);
+        if (!nombre.isEmpty()) {
+            formatoSalon.setNombre(nombre);
+        }
+
+        System.out.print("Nueva descripcion del Formato de Salón (dejar en blanco para no cambiar): ");
+        String descripcion = scanner.nextLine();
+        if (!descripcion.isEmpty()) {
+            formatoSalon.setDescripcion(descripcion);
+        }
+
 
         formatosalonController.actualizarFormatoSalon(formatoSalon);
         System.out.println("Formato de Salón actualizado exitosamente.");
@@ -672,8 +910,12 @@ public class App {
     public static void listarServicios(ServiciosAdicionalesController serviciosController) {
         List<ServiciosAdicionales> servicios = serviciosController.obtenerTodosLosServiciosAdicionales();
         System.out.println("=== Lista de Servicios Adicionales ===");
-        for (ServiciosAdicionales servicio : servicios) {
-            System.out.println(servicio);
+        if (servicios.isEmpty()) {
+            System.out.println("No hay Servicios Adicionales registrados.");
+        } else {
+            for (ServiciosAdicionales servicio : servicios) {
+                System.out.println(servicio);
+            }
         }
     }
 
@@ -688,13 +930,18 @@ public class App {
             return;
         }
 
-        System.out.print("Nuevo nombre del Servicio Adicional: ");
+        System.out.print("Nuevo nombre del Servicio Adicional (dejar en blanco para no cambiar): ");
         String nombre = scanner.nextLine();
-        servicio.setNombre(nombre);
+        if (!nombre.isEmpty()) {
+            servicio.setNombre(nombre);
+        }
 
-        System.out.print("Nueva descripción del Servicio Adicional: ");
+        System.out.print("Nueva descripción del Servicio Adicional (dejar en blanco para no cambiar): ");
         String descripcion = scanner.nextLine();
-        servicio.setDescripcion(descripcion);
+        if (!descripcion.isEmpty()) {
+            servicio.setDescripcion(descripcion);
+        }
+
 
         serviciosController.actualizarServicioAdicional(servicio);
         System.out.println("Servicio Adicional actualizado exitosamente.");
@@ -761,8 +1008,12 @@ public class App {
     public static void listarCatering(CateringController cateringController) {
         List<Catering> caterings = cateringController.obtenerTodosLosCaterings();
         System.out.println("=== Lista de Caterings ===");
-        for (Catering catering : caterings) {
-            System.out.println(catering);
+        if (caterings.isEmpty()) {
+            System.out.println("No hay caterings registrados.");
+        } else {
+            for (Catering catering : caterings) {
+                System.out.println(catering);
+            }
         }
     }
 
@@ -777,9 +1028,12 @@ public class App {
             return;
         }
 
-        System.out.print("Nuevo tipo de Catering: ");
+        System.out.print("Nuevo tipo de Catering (dejar en blanco para no cambiar): ");
         String tipoCatering = scanner.nextLine();
-        catering.setTipoCatering(tipoCatering);
+        if (!tipoCatering.isEmpty()) {
+            catering.setTipoCatering(tipoCatering);
+        }
+
 
         cateringController.actualizarCatering(catering);
         System.out.println("Catering actualizado exitosamente.");
@@ -846,8 +1100,12 @@ public class App {
     public static void listarOpcionesCatering(OpcionesCateringController opcionesCateringController) {
         List<OpcionesCatering> opcionesCatering = opcionesCateringController.obtenerTodasLasOpcionesCatering();
         System.out.println("=== Lista de Opciones de Catering ===");
-        for (OpcionesCatering opcion : opcionesCatering) {
-            System.out.println(opcion);
+        if (opcionesCatering.isEmpty()) {
+            System.out.println("No hay opciones de catering registrados.");
+        } else {
+            for (OpcionesCatering opcionCatering : opcionesCatering) {
+                System.out.println(opcionCatering);
+            }
         }
     }
 
@@ -862,13 +1120,18 @@ public class App {
             return;
         }
 
-        System.out.print("Nuevo nombre de la Opción de Catering: ");
+        System.out.print("Nuevo nombre de la Opción de Catering (dejar en blanco para no cambiar): ");
         String nombre = scanner.nextLine();
-        opcionCatering.setNombre(nombre);
+        if (!nombre.isEmpty()) {
+            opcionCatering.setNombre(nombre);
+        }
 
-        System.out.print("Nueva descripción de la Opción de Catering: ");
+
+        System.out.print("Nueva descripción de la Opción de Catering (dejar en blanco para no cambiar): ");
         String descripcion = scanner.nextLine();
-        opcionCatering.setDescripcion(descripcion);
+        if (!descripcion.isEmpty()) {
+            opcionCatering.setDescripcion(descripcion);
+        }
 
         opcionesCateringController.actualizarOpcionCatering(opcionCatering);
         System.out.println("Opción de Catering actualizada exitosamente.");
