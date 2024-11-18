@@ -44,11 +44,9 @@ public class OpcionesCatering {
 
     @Override
     public String toString() {
-        return "OpcionesCatering{" +
-                "id=" + id +
-                ", nombre='" + nombre + '\'' +
-                ", descripcion='" + descripcion + '\'' +
-                '}';
+        return "Id: " + id +
+                ", Nombre: " + nombre +
+                ", Descripción: " + descripcion;
     }
 }
 

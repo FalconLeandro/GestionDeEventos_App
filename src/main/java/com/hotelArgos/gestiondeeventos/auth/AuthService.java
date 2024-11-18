@@ -14,9 +14,9 @@ public class AuthService {
         this.usuarioDAO = new UsuarioDAO(connection);
     }
 
-    public boolean authenticate(String email, String password) {
+    public boolean authenticate(String nombre, String password) {
         try {
-            Usuario usuario = usuarioDAO.obtenerPorEmail(email);
+            Usuario usuario = usuarioDAO.obtenerPorNombre(nombre);
             return usuario != null && usuario.getPassword().equals(password);
         } catch (SQLException e) {
             e.printStackTrace();

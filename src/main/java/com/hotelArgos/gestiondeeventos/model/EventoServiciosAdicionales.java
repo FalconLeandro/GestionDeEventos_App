@@ -29,9 +29,8 @@ public class EventoServiciosAdicionales {
 
     @Override
     public String toString() {
-        return "EventoServiciosAdicionales{" +
-                "evento=" + evento +
-                ", servicioAdicional=" + servicioAdicional +
-                '}';
+        return "Evento Servicios Adicionales: " +
+                "\nEvento: " + evento +
+                "\nServicio Adicional: " + servicioAdicional;
     }
 }

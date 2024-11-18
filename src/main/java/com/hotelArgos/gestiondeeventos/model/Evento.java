@@ -198,22 +198,21 @@ public class Evento {
 
     @Override
     public String toString() {
-        return "Evento: " +
-                "id: " + id +
-                ", nombre: " + nombre +
-                ", fecha: " + fecha +
-                ", hora de inicio: " + horaInicio +
-                ", hora de finalizacion: " + horaFin +
-                ", cantidad de personas: " + cantidadPersonas +
-                ", observaciones: " + observaciones +
-                ", empresa: " + empresa +
-                ", salon: " + salon +
-                ", formato de salon: " + formatoSalon +
-                ", servicios adicionales: " + serviciosAdicionales +
-                ", caterings: " + caterings +
-                ", createdAt: " + createdAt +
-                ", updatedAt: " + updatedAt +
-                ", estado: " + estado;
+        return "Evento Id: " + id +
+                ", Estado: " + estado +
+                ", Nombre: " + nombre +
+                ", Fecha: " + fecha +
+                ", Hora de Inicio: " + horaInicio +
+                ", Hora de Finalización: " + horaFin +
+                ", Cantidad de Personas: " + cantidadPersonas +
+                ", Empresa: " +  empresa +
+                ", Salón: " + salon +
+                ", Formato de Salón: " + formatoSalon +
+                ", Servicios Adicionales: " + serviciosAdicionales +
+                ", Caterings: " + caterings +
+                ", Observaciones: " + observaciones +
+                ", CreatedAt: " + createdAt +
+                ", UpdatedAt: " + updatedAt;
     }
 
 

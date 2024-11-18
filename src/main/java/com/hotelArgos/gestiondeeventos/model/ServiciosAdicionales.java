@@ -45,11 +45,9 @@ public class ServiciosAdicionales {
 
     @Override
     public String toString() {
-        return "ServiciosAdicionales{" +
-                "id=" + id +
-                ", nombre='" + nombre + '\'' +
-                ", descripcion='" + descripcion + '\'' +
-                '}';
+        return "Id :" + id +
+                ", Nombre: " + nombre +
+                ", Descripción: " + descripcion;
     }
 }
 

@@ -5,7 +5,7 @@ public class Usuario {
     private String nombre;
     private String email;
     private String password;
-    private String rol; // Opciones: admin, user
+    private String rol; // Opciones: ADMIN, USER
 
     // Constructor, Getters y Setters
 
@@ -66,12 +66,10 @@ public class Usuario {
 
     @Override
     public String toString() {
-        return "Usuario{" +
-                "id=" + id +
-                ", nombre='" + nombre + '\'' +
-                ", email='" + email + '\'' +
-                ", password='" + password + '\'' +
-                ", rol='" + rol + '\'' +
-                '}';
+        return "Id: " + id +
+                ", Nombre: " + nombre +
+                ", Email: " + email +
+                ", Password: " + password +
+                ", Rol: " + rol;
     }
 }

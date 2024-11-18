@@ -57,9 +57,9 @@ public class UsuarioController {
         }
     }
 
-    public Usuario obtenerUsuarioPorEmail(String email) {
+    public Usuario obtenerUsuarioPorNombre(String nombre) {
         try {
-            return usuarioDAO.obtenerPorEmail(email);
+            return usuarioDAO.obtenerPorNombre(nombre);
         } catch (SQLException e) {
             e.printStackTrace();
     }

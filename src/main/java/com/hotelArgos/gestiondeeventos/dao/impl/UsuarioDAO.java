@@ -52,10 +52,10 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
         }
         return null;
     }
-    public Usuario obtenerPorEmail(String email) throws SQLException {
-        String query = "SELECT * FROM usuario WHERE email = ?";
+    public Usuario obtenerPorNombre(String nombre) throws SQLException {
+        String query = "SELECT * FROM usuario WHERE nombre = ?";
         try (PreparedStatement ps = connection.prepareStatement(query)) {
-            ps.setString(1, email);
+            ps.setString(1, nombre);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return new Usuario(

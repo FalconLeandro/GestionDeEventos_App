@@ -12,7 +12,7 @@ public class AuthController {
         this.authService = new AuthService(connection);
     }
 
-    public boolean login(String email, String password) {
-        return authService.authenticate(email, password);
+    public boolean login(String nombre, String password) {
+        return authService.authenticate(nombre, password);
     }
 }

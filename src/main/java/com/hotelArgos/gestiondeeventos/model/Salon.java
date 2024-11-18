@@ -56,12 +56,10 @@ public class Salon {
 
     @Override
     public String toString() {
-        return "Salon{" +
-                "id=" + id +
-                ", nombre='" + nombre + '\'' +
-                ", capacidad=" + capacidad +
-                ", descripcion='" + descripcion + '\'' +
-                '}';
+        return "Id: " + id +
+                ", Nombre: " + nombre +
+                ", Capacidad: " + capacidad +
+                ", Descripción: " + descripcion;
     }
 }
 

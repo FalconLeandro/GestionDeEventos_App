@@ -17,10 +17,11 @@ public class FormatoSalonDAO implements GenericDAO<FormatoSalon> {
 
     @Override
     public void crear(FormatoSalon formatoSalon) throws SQLException {
-        String query = "INSERT INTO formato_salon (nombre, descripcion) VALUES (?, ?)";
+        String query = "INSERT INTO formato_salon (nombre, descripcion, imagen_formato_salon) VALUES (?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, formatoSalon.getNombre());
             ps.setString(2, formatoSalon.getDescripcion());
+            ps.setString(3, formatoSalon.getImagenFormatoSalon());
             ps.executeUpdate();
 
             try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
@@ -41,7 +42,8 @@ public class FormatoSalonDAO implements GenericDAO<FormatoSalon> {
                     return new FormatoSalon(
                             rs.getInt("id"),
                             rs.getString("nombre"),
-                            rs.getString("descripcion")
+                            rs.getString("descripcion"),
+                            rs.getString("imagen_formato_salon")
                     );
                 }
             }
@@ -59,7 +61,8 @@ public class FormatoSalonDAO implements GenericDAO<FormatoSalon> {
                 formatos.add(new FormatoSalon(
                         rs.getInt("id"),
                         rs.getString("nombre"),
-                        rs.getString("descripcion")
+                        rs.getString("descripcion"),
+                        rs.getString("imagen_formato_salon")
                 ));
             }
         }
@@ -68,11 +71,12 @@ public class FormatoSalonDAO implements GenericDAO<FormatoSalon> {
 
     @Override
     public void actualizar(FormatoSalon formatoSalon) throws SQLException {
-        String query = "UPDATE formato_salon SET nombre = ?, descripcion = ? WHERE id = ?";
+        String query = "UPDATE formato_salon SET nombre = ?, descripcion = ?, imagen_formato_salon = ? WHERE id = ?";
         try (PreparedStatement ps = connection.prepareStatement(query)) {
             ps.setString(1, formatoSalon.getNombre());
             ps.setString(2, formatoSalon.getDescripcion());
-            ps.setInt(3, formatoSalon.getId());
+            ps.setString(3, formatoSalon.getImagenFormatoSalon());
+            ps.setInt(4, formatoSalon.getId());
             ps.executeUpdate();
         }
     }

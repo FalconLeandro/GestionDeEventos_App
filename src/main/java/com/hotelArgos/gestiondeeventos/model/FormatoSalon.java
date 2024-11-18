@@ -4,19 +4,22 @@ public class FormatoSalon {
     private int id;
     private String nombre;
     private String descripcion;
+    private String imagenFormatoSalon;
 
     // Constructor, Getters y Setters
 
 
-    public FormatoSalon(int id, String nombre, String descripcion) {
+    public FormatoSalon(int id, String nombre, String descripcion, String imagenFormatoSalon) {
         this.id = id;
         this.nombre = nombre;
         this.descripcion = descripcion;
+        this.imagenFormatoSalon = imagenFormatoSalon;
     }
 
-    public FormatoSalon(String nombre, String descripcion) {
+    public FormatoSalon(String nombre, String descripcion, String imagenFormatoSalon) {
         this.nombre = nombre;
         this.descripcion = descripcion;
+        this.imagenFormatoSalon = imagenFormatoSalon;
     }
 
     public int getId() {
@@ -43,13 +46,20 @@ public class FormatoSalon {
         this.descripcion = descripcion;
     }
 
+    public String getImagenFormatoSalon() {
+        return imagenFormatoSalon;
+    }
+
+    public void setImagenFormatoSalon(String imagenFormatoSalon) {
+        this.imagenFormatoSalon = imagenFormatoSalon;
+    }
+
     @Override
     public String toString() {
-        return "FormatoSalon{" +
-                "id=" + id +
-                ", nombre='" + nombre + '\'' +
-                ", descripcion='" + descripcion + '\'' +
-                '}';
+        return "Id:" + id +
+                ", Nombre:" + nombre +
+                ", Descripción:" + descripcion +
+                ", Imagen:" + imagenFormatoSalon;
     }
 }
 

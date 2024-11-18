@@ -1,0 +1,16 @@
+<component name="libraryTable">
+  <library name="java">
+    <CLASSES />
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$USER_HOME$/Downloads/itextpdf-5.5.13.4/itextpdf-5.5.13.4/itext/src/main/java" />
+      <root url="file://$USER_HOME$/Downloads/itextpdf-5.5.13.4/itextpdf-5.5.13.4/itext/src/test/java" />
+      <root url="file://$USER_HOME$/Downloads/itextpdf-5.5.13.4/itextpdf-5.5.13.4/pdfa/src/main/java" />
+      <root url="file://$USER_HOME$/Downloads/itextpdf-5.5.13.4/itextpdf-5.5.13.4/pdfa/src/test/java" />
+      <root url="file://$USER_HOME$/Downloads/itextpdf-5.5.13.4/itextpdf-5.5.13.4/xmlworker/src/main/java" />
+      <root url="file://$USER_HOME$/Downloads/itextpdf-5.5.13.4/itextpdf-5.5.13.4/xmlworker/src/test/java" />
+      <root url="file://$USER_HOME$/Downloads/itextpdf-5.5.13.4/itextpdf-5.5.13.4/xtra/src/main/java" />
+      <root url="file://$USER_HOME$/Downloads/itextpdf-5.5.13.4/itextpdf-5.5.13.4/xtra/src/test/java" />
+    </SOURCES>
+  </library>
+</component>
